@@ -37,13 +37,9 @@ class WifiReceiver extends BroadcastReceiver {
             ArrayList<String> deviceList = new ArrayList<>();
             for (ScanResult scanResult : wifiList) {
                 if(scanResult.SSID.equals(mainNetwork) ){
-//                    !deviceList.contains(scanResult.SSID) &&
                     String signalStrength = "Signal Strength: " + scanResult.level;
                     int strength = wifiManager.calculateSignalLevel(scanResult.level, 10);
-                    deviceList.add((scanResult.SSID ) + " - " +signalStrength + " Strength Level: " + strength + " - Frequency: " + scanResult.frequency);
-//                + " - " + scanResult.capabilities
-//                    sb.append("\n").append(scanResult.SSID);
-//                        .append(" - ").append(scanResult.capabilities);
+                    deviceList.add((scanResult.SSID ) + " - " +signalStrength + "\n" + "Strength Level: " + strength + " - Frequency: " + scanResult.frequency);
                 }
 
             }

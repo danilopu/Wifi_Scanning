@@ -8,27 +8,58 @@
     tools:context=".MainActivity">
 
     <ListView
-        android:transcriptMode="alwaysScroll"
         android:id="@+id/wifiList"
         android:layout_width="match_parent"
-        android:layout_height="485dp"
-        android:layout_above="@+id/scanBtn" />
-
-    <Button
-        android:id="@+id/scanBtn"
-        android:layout_width="match_parent"
-        android:layout_height="50dp"
-        android:layout_alignParentBottom="true"
-        android:layout_gravity="bottom"
-        android:layout_margin="15dp"
-        android:text="Scan WiFi" />
+        android:layout_height="356dp"
+        android:layout_above="@+id/buttonLayout"
+        android:layout_marginBottom="45dp"
+        android:transcriptMode="alwaysScroll" />
 
     <LinearLayout
-        android:transcriptMode="alwaysScroll"
+        android:id="@+id/buttonLayout"
+        android:layout_width="364dp"
+        android:layout_height="120dp"
+        android:layout_alignParentBottom="true"
+        android:layout_centerInParent="true"
+        android:layout_gravity="bottom"
+        android:layout_marginStart="15dp"
+        android:layout_marginTop="15dp"
+        android:layout_marginEnd="15dp"
+        android:layout_marginBottom="0dp"
+        android:orientation="horizontal"
+        android:gravity="center_horizontal">
+
+        <Button
+            android:id="@+id/scanBtn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:layout_gravity="bottom"
+            android:layout_marginStart="15dp"
+            android:layout_marginTop="15dp"
+            android:layout_marginEnd="15dp"
+            android:layout_marginBottom="15dp"
+            android:text="Scan" />
+
+        <Button
+            android:id="@+id/resetBtn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:layout_gravity="bottom"
+            android:layout_marginStart="15dp"
+            android:layout_marginTop="15dp"
+            android:layout_marginEnd="15dp"
+            android:layout_marginBottom="15dp"
+            android:text="Reset"
+            android:onClick="ResetSettingsLocal"/>
+    </LinearLayout>
+
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="129dp"
-        android:layout_centerHorizontal="true"
-        android:orientation="vertical">
+        android:layout_height="230dp"
+        android:orientation="vertical"
+        android:transcriptMode="alwaysScroll">
 
         <EditText
             android:id="@+id/networkName"
@@ -48,5 +79,15 @@
             android:hint="dBm Level"
             android:inputType="number" />
 
+        <TextView
+            android:id="@+id/countUpTimer"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:text="00 : 00 : 00"
+            android:gravity="center_horizontal|center_vertical"
+            android:textColor="@color/colorPrimary"
+            android:textSize="36sp"
+            android:textStyle="bold"
+            android:onClick="StopClock"/>
     </LinearLayout>
 </RelativeLayout>
