@@ -18,17 +18,24 @@ class WifiReceiver extends BroadcastReceiver {
     WifiManager wifiManager;
     StringBuilder sb;
     ListView wifiDeviceList;
+    int strength;
+    String officeNetwork;
 
 
-    public WifiReceiver(WifiManager wifiManager, ListView wifiDeviceList) {
+    public WifiReceiver(WifiManager wifiManager, ListView wifiDeviceList, int strength, String officeNetwork) {
         this.wifiManager = wifiManager;
         this.wifiDeviceList = wifiDeviceList;
+        this.officeNetwork = officeNetwork;
+        this.strength = strength;
     }
 
     public void onReceive(Context context, Intent intent) {
-        Bundle bundle = intent.getExtras();
         String action = intent.getAction();
         String mainNetwork = "RationaleAP";
+        String ainNetwork = intent.getExtras().getString("extra");
+        if(action.equals("getStrengthLimit")){
+            mainNetwork = intent.getExtras().getString("extra");
+        }
         String network = intent.getStringExtra("network");
         if (WifiManager.SCAN_RESULTS_AVAILABLE_ACTION.equals(action)) {
             sb = new StringBuilder();
@@ -36,18 +43,22 @@ class WifiReceiver extends BroadcastReceiver {
 
             ArrayList<String> deviceList = new ArrayList<>();
             for (ScanResult scanResult : wifiList) {
-                if(scanResult.SSID.equals(mainNetwork) ){
-                    String signalStrength = "Signal Strength: " + scanResult.level;
-                    int strength = wifiManager.calculateSignalLevel(scanResult.level, 10);
-                    deviceList.add((scanResult.SSID ) + " - " +signalStrength + "\n" + "Strength Level: " + strength + " - Frequency: " + scanResult.frequency);
+                if(scanResult.SSID.equals(this.officeNetwork) ){
+                    if(Math.abs(scanResult.level) < Math.abs(this.strength)){
+                        String signalStrength = "Signal Strength: " + scanResult.level;
+                        deviceList.add((scanResult.SSID + " - " + scanResult.BSSID ) + " - " + scanResult.frequency + " - " + scanResult.level + "\n - in range");
+                    } else {
+                        String signalStrength = "Signal Strength: " + scanResult.level;
+                        deviceList.add((scanResult.SSID + " - " + scanResult.BSSID ) + " - " + scanResult.frequency + " - " + scanResult.level + "\n - out of range");
+                    }
                 }
 
             }
-            Toast.makeText(context, sb, Toast.LENGTH_SHORT).show();
 
             ArrayAdapter arrayAdapter = new ArrayAdapter(context, android.R.layout.simple_list_item_1, deviceList.toArray());
-
             wifiDeviceList.setAdapter(arrayAdapter);
         }
     }
+
+
 }

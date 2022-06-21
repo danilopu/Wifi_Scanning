@@ -26,8 +26,8 @@
         android:layout_marginTop="15dp"
         android:layout_marginEnd="15dp"
         android:layout_marginBottom="0dp"
-        android:orientation="horizontal"
-        android:gravity="center_horizontal">
+        android:gravity="center_horizontal"
+        android:orientation="horizontal">
 
         <Button
             android:id="@+id/scanBtn"
@@ -51,8 +51,22 @@
             android:layout_marginTop="15dp"
             android:layout_marginEnd="15dp"
             android:layout_marginBottom="15dp"
-            android:text="Reset"
-            android:onClick="ResetSettingsLocal"/>
+            android:onClick="ResetSettingsLocal"
+            android:text="Reset" />
+
+        <Button
+            android:id="@+id/settingsButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:layout_gravity="bottom"
+            android:layout_marginStart="15dp"
+            android:layout_marginTop="15dp"
+            android:layout_marginEnd="15dp"
+            android:layout_marginBottom="15dp"
+            android:onClick="startSettingsActivity"
+            android:text="* * *"
+            android:textSize="12sp" />
     </LinearLayout>
 
     <LinearLayout
@@ -61,33 +75,16 @@
         android:orientation="vertical"
         android:transcriptMode="alwaysScroll">
 
-        <EditText
-            android:id="@+id/networkName"
-            android:layout_width="257dp"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center_horizontal"
-            android:ems="10"
-            android:hint="Network Name"
-            android:inputType="textPersonName" />
-
-        <EditText
-            android:id="@+id/dbmLevel"
-            android:layout_width="257dp"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center_horizontal"
-            android:ems="10"
-            android:hint="dBm Level"
-            android:inputType="number" />
-
         <TextView
             android:id="@+id/countUpTimer"
             android:layout_width="match_parent"
             android:layout_height="50dp"
-            android:text="00 : 00 : 00"
             android:gravity="center_horizontal|center_vertical"
+            android:onClick="startStopTapped"
+            android:text="00 : 00 : 00"
             android:textColor="@color/colorPrimary"
             android:textSize="36sp"
-            android:textStyle="bold"
-            android:onClick="StopClock"/>
+            android:textStyle="bold" />
+
     </LinearLayout>
 </RelativeLayout>

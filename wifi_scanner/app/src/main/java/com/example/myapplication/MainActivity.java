@@ -2,10 +2,14 @@ package com.example.myapplication;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
+import android.net.NetworkInfo;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Build;
@@ -32,7 +36,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class MainActivity extends AppCompatActivity {
-    ExecutorService executorService = Executors.newFixedThreadPool(4);
 
     private ListView wifiList;
     private WifiManager wifiManager;
@@ -42,9 +45,7 @@ public class MainActivity extends AppCompatActivity {
     boolean isWifiConnected;
 
     private TextView countDownTimer;
-    String newNetwork;
     private EditText dbmLevel;
-    String dBm;
 
     long hourPassed = 0;
     long minutePassed = 0;
@@ -61,7 +62,6 @@ public class MainActivity extends AppCompatActivity {
     private final int MY_PERMISSIONS_ACCESS_COARSE_LOCATION = 1;
 
     WifiReceiver receiverWifi;
-    private Executor executor;
 
     TextView timerUpText;
     Timer timer;
@@ -70,19 +70,21 @@ public class MainActivity extends AppCompatActivity {
 
     boolean timerStarted = false;
 
+    String office;
+    String strength;
+    int signalStrength;
+    boolean isTimerPaused = false;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         SharedPreferences sharedPreferences = getSharedPreferences("settings",MODE_PRIVATE);
         timerUpText = findViewById(R.id.countUpTimer);
-        networkName = findViewById(R.id.networkName);
 
         timer = new Timer();
         wifiList = findViewById(R.id.wifiList);
         Button buttonScan = findViewById(R.id.scanBtn);
-
-        dbmLevel = findViewById(R.id.dbmLevel);
 
         InitSettingUp(sharedPreferences);
 
@@ -112,53 +114,55 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onPostResume() {
         super.onPostResume();
-        receiverWifi = new WifiReceiver(wifiManager, wifiList);
+        receiverWifi = new WifiReceiver(wifiManager, wifiList,signalStrength,office);
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION);
+//        InitSettingUp(sharedPreferences);
         registerReceiver(receiverWifi, intentFilter);
         getWifi();
     }
 
     private void getWifi() {
-        String workNetwork = networkName.getText().toString();
+        String workNetwork = office;
         isWifiConnected = CheckWifiConnection();
         if(isWifiConnected) {
             WifiInfo wifiInfo = wifiManager.getConnectionInfo();
             String connectedNetwork = wifiInfo.getSSID();
             String formatConnectedNetwork = connectedNetwork.substring(1, connectedNetwork.length() - 1);
             if(formatConnectedNetwork.equals(workNetwork)){
-                Toast toast = Toast.makeText(MainActivity.this, "Connected to work network: " + wifiInfo.getSSID(), Toast.LENGTH_LONG);
+                Toast toast = Toast.makeText(MainActivity.this, "Connected to office network: " + wifiInfo.getSSID(), Toast.LENGTH_LONG);
                 toast.setGravity(Gravity.CENTER, 0,0);
                 toast.show();
 
-                Toast toastTimer = Toast.makeText(MainActivity.this, "Started logging time!", Toast.LENGTH_LONG);
+                Toast toastTimer = Toast.makeText(MainActivity.this, "Logging time!", Toast.LENGTH_LONG);
                 toastTimer.setGravity(Gravity.CENTER, 0,0);
                 toastTimer.show();
-                startTimer();
+                stopStart();
 
             } else {
 
-                Toast toast = Toast.makeText(MainActivity.this, "Not connected to work network: " + networkName.getText().toString(), Toast.LENGTH_LONG);
+                Toast toast = Toast.makeText(MainActivity.this, "Not connected to office network: " + workNetwork, Toast.LENGTH_LONG);
                 toast.setGravity(Gravity.CENTER, 0,0);
                 toast.show();
+                stopStart();
 
             }
         } else {
             timerTask.cancel();
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            Toast toast = Toast.makeText(MainActivity.this, "version>=marshmallow", Toast.LENGTH_SHORT);
-            toast.setGravity(Gravity.CENTER,0,0);
-            toast.show();
+//            Toast toast = Toast.makeText(MainActivity.this, "version>=marshmallow", Toast.LENGTH_SHORT);
+//            toast.setGravity(Gravity.CENTER,0,0);
+//            toast.show();
             if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                Toast.makeText(MainActivity.this, "location turned off", Toast.LENGTH_SHORT).show();
+//                Toast.makeText(MainActivity.this, "location turned off", Toast.LENGTH_SHORT).show();
                 ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, MY_PERMISSIONS_ACCESS_COARSE_LOCATION);
             } else {
-                Toast.makeText(MainActivity.this, "location turned on", Toast.LENGTH_SHORT).show();
+//                Toast.makeText(MainActivity.this, "location turned on", Toast.LENGTH_SHORT).show();
                 wifiManager.startScan();
             }
         } else {
-            Toast.makeText(MainActivity.this, "scanning", Toast.LENGTH_SHORT).show();
+//            Toast.makeText(MainActivity.this, "scanning", Toast.LENGTH_SHORT).show();
             wifiManager.startScan();
         }
     }
@@ -188,10 +192,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public boolean CheckWifiConnection() {
-        ConnectivityManager conMgr = (ConnectivityManager) getSystemService (Context.CONNECTIVITY_SERVICE);
-        if (conMgr.getActiveNetworkInfo() != null
-                && conMgr.getActiveNetworkInfo().isAvailable()
-                && conMgr.getActiveNetworkInfo().isConnected()) {
+        ConnectivityManager cm =
+                (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE);
+
+        NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
+        if(activeNetwork != null && activeNetwork.isConnectedOrConnecting() && activeNetwork.getType() == ConnectivityManager.TYPE_WIFI ){
             return true;
         } else {
             return false;
@@ -213,6 +218,14 @@ public class MainActivity extends AppCompatActivity {
                         time++;
                         timerUpText.setText(getTimerText());
                         wifiManager.startScan();
+                        if(time % 2 == 0){
+                            boolean isConnected = CheckWifiConnection();
+                            if(!isConnected){
+                                isTimerPaused = true;
+                                timerStarted = true;
+                                stopStart();
+                            }
+                        }
                     }
                 });
             }
@@ -251,34 +264,25 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public void StopClock(){
-        timerTask.cancel();
-    }
-
     private void InitSettingUp(SharedPreferences sharedPreferences){
-        String network = sharedPreferences.getString("networkName", "");
-        String dBmLevel = sharedPreferences.getString("dBmLevel", "");
-//        Toast.makeText(MainActivity.this, "Home network:  " + network, Toast.LENGTH_LONG).show();
-        if(!network.isEmpty())
-            networkName.setText(network);
+
+        office = sharedPreferences.getString("networkName", "");
+        strength = sharedPreferences.getString("dBmLevel", "");
         String hoursLeftUp = sharedPreferences.getString("hoursPassedUp", "");
         String minutesLeftUp = sharedPreferences.getString("minutesPassedUp", "");
         String secondsLeftUp = sharedPreferences.getString("secondsPassedUp", "");
-//        Toast.makeText(MainActivity.this, "Hours passed " + hoursLeftUp, Toast.LENGTH_LONG).show();
-//        Toast.makeText(MainActivity.this, "Minutes passed " + minutesLeftUp, Toast.LENGTH_LONG).show();
-//        Toast.makeText(MainActivity.this, "Seconds passed " + secondsLeftUp, Toast.LENGTH_LONG).show();
 
-        try{
-            int dbmlevel = Integer.parseInt(dBmLevel);
-            dbmLevel.setText(String.valueOf(dbmlevel));
-        } catch(NumberFormatException ex) {
-
-        }
         try{
             String loggedTime = (sharedPreferences.getString("timeDouble", ""));
             time = Double.parseDouble(loggedTime);
         } catch(NumberFormatException ex) {
 
+        }
+
+        try{
+            signalStrength = Integer.parseInt(strength);
+        } catch(NumberFormatException ex) {
+            signalStrength = 0;
         }
         try{
             seconds = Integer.parseInt(secondsLeftUp);
@@ -299,12 +303,6 @@ public class MainActivity extends AppCompatActivity {
         timerUpText.setText(formatTime( seconds, minutes ,hours ));
     }
 
-    private double setTimeVariable(int seconds) {
-        double time = ((seconds * 60) * 3600) * seconds;
-
-        return time;
-    }
-
     private void SaveSettingsToLocal(){
         SharedPreferences sharedPreferences = getSharedPreferences("settings",MODE_PRIVATE);
         SharedPreferences.Editor settingsEditor = sharedPreferences.edit();
@@ -313,8 +311,6 @@ public class MainActivity extends AppCompatActivity {
         settingsEditor.putString("minutesPassedUp", String.valueOf(minutePassedUp));
         settingsEditor.putString("secondsPassedUp", String.valueOf(secondsPassedUp));
         settingsEditor.putString("timeDouble", String.valueOf(time));
-        settingsEditor.putString("networkName", networkName.getText().toString());
-        settingsEditor.putString("dBmLevel", dbmLevel.getText().toString());
         settingsEditor.commit();
     }
 
@@ -322,10 +318,33 @@ public class MainActivity extends AppCompatActivity {
         SharedPreferences sharedPreferences = getSharedPreferences("settings",MODE_PRIVATE);
         SharedPreferences.Editor settingsEditor = sharedPreferences.edit();
 
+        time = 0.0;
+        timerUpText.setText(getTimerText());
         settingsEditor.putString("hoursPassedUp", "");
         settingsEditor.putString("minutesPassedUp", "");
         settingsEditor.putString("secondsPassedUp", "");
         settingsEditor.putString("timeDouble", "");
         settingsEditor.commit();
+    }
+
+    public void startSettingsActivity(View view) {
+        Intent intent = new Intent(this, SettingsActivity.class);
+        intent.putExtra("name", office);
+        intent.putExtra("strength", strength);
+        startActivity(intent);
+    }
+
+    public void stopStart()
+    {
+        if(timerStarted == false)
+        {
+            timerStarted = true;
+            startTimer();
+        }
+        else
+        {
+            timerStarted = false;
+            timerTask.cancel();
+        }
     }
 }
